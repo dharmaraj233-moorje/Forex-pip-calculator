@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ApexPosition PRO | Multi-Asset Risk & Lot Calculator</title>
+
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ApexPosition">
+  <meta name="application-name" content="ApexPosition">
+  <meta name="theme-color" content="#070a12">
+  <meta name="description" content="Institutional Multi-Asset Position Sizing, Margin & Risk Calculator for Forex, Gold, Commodities, Crypto & Indices">
+
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              950: '#040711',
+              900: '#070a12',
+              850: '#0c101c',
+              800: '#111728',
+              700: '#1a2238',
+              600: '#263352',
+            },
+            accent: {
+              cyan: '#00f3ff',
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              amber: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #070a12; }
+    ::-webkit-scrollbar-thumb { background: #1a2238; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00f3ff44; }
+
+    /* Hide numeric steppers */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+
+    .glow-cyan {
+      box-shadow: 0 0 25px -4px rgba(0, 243, 255, 0.15);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 25px -4px rgba(16, 185, 129, 0.18);
+    }
+    .glow-rose {
+      box-shadow: 0 0 25px -4px rgba(244, 63, 94, 0.18);
+    }
+  </style>
+</head>
+<body class="bg-brand-950 text-slate-200 font-sans min-h-screen antialiased selection:bg-accent-cyan/20 selection:text-accent-cyan pb-12">
+
+  <header class="border-b border-white/5 bg-brand-900/90 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+          <i class="fa-solid fa-chart-line text-white text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-lg font-extrabold tracking-tight text-white font-sans">APEX<span class="text-accent-cyan">POS</span></span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 uppercase font-bold tracking-wider">Terminal v3.0</span>
+          </div>
+          <p class="text-xs text-slate-400 font-medium">Forex, Metals, Commodities, Crypto & Indices Risk Engine</p>
+        </div>
+      </div>
+
+      <!-- Quick Ticker Preview -->
+      <div class="hidden xl:flex items-center space-x-5 text-xs font-mono bg-brand-850 py-1.5 px-4 rounded-xl border border-white/5">
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">EURUSD</span>
+          <span class="text-accent-emerald font-semibold" id="ticker-eurusd">1.08500</span>
+        </div>
+        <div class="w-px h-3 bg-white/10"></div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">XAUUSD</span>
+          <span class="text-accent-emerald font-semibold" id="ticker-xauusd">2385.50</span>
+        </div>
+        <div class="w-px h-3 bg-white/10"></div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">BTCUSD</span>
+          <span class="text-accent-emerald font-semibold" id="ticker-btcusd">65400.00</span>
+        </div>
+        <div class="w-px h-3 bg-white/10"></div>
+        <div class="flex items-center space-x-2">
+          <span class="text-slate-400">US30</span>
+          <span class="text-slate-300 font-semibold" id="ticker-us30">39850</span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btn-reset" class="text-xs font-medium px-3 py-2 rounded-lg bg-brand-850 hover:bg-brand-800 text-slate-300 border border-white/10 transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate-left text-slate-400"></i> Reset
+        </button>
+        <button id="btn-export-ticket" class="text-xs font-bold px-3.5 py-2 rounded-lg bg-gradient-to-r from-accent-cyan to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-brand-950 shadow-md shadow-cyan-500/20 transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-share-nodes"></i> Export Signal
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+    <!-- Direction / Validation Alerts Banner -->
+    <div id="validation-banner" class="hidden transition-all duration-300 p-4 rounded-xl border border-rose-500/40 bg-rose-950/40 text-rose-200 text-sm flex items-start space-x-3">
+      <i class="fa-solid fa-triangle-exclamation text-accent-rose text-lg mt-0.5"></i>
+      <div id="validation-message" class="flex-1 font-medium">Invalid trade setup detected. Check your Stop Loss and Take Profit alignment.</div>
+    </div>
+
+    <!-- Master 2-Column Responsive Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: Parameter Controls (5 Cols) -->
+      <section class="lg:col-span-5 space-y-5">
+
+        <!-- Panel 1: Instrument & Asset Category Selection -->
+        <div class="bg-brand-850 rounded-2xl p-5 border border-white/10 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-white/5 pb-3">
+            <h2 class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+              <i class="fa-solid fa-globe text-accent-cyan"></i> 1. Asset & Pricing Matrix
+            </h2>
+            <span id="asset-type-badge" class="text-[11px] font-mono uppercase px-2 py-0.5 bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 rounded-md font-semibold">Forex Major</span>
+          </div>
+
+          <!-- Category Pills -->
+          <div class="grid grid-cols-4 gap-1 p-1 bg-brand-950 rounded-xl border border-white/5 text-xs font-semibold">
+            <button data-cat="forex" class="cat-pill py-2 rounded-lg text-center transition-all bg-brand-700 text-accent-cyan shadow-sm">Forex</button>
+            <button data-cat="metals" class="cat-pill py-2 rounded-lg text-center transition-all text-slate-400 hover:text-white">Metals</button>
+            <button data-cat="crypto" class="cat-pill py-2 rounded-lg text-center transition-all text-slate-400 hover:text-white">Crypto</button>
+            <button data-cat="indices" class="cat-pill py-2 rounded-lg text-center transition-all text-slate-400 hover:text-white">Indices</button>
+          </div>
+
+          <!-- Instrument Selector & Price Indicator -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase font-mono tracking-tight">Instrument</label>
+              <select id="select-instrument" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-cyan font-mono font-bold cursor-pointer">
+                <!-- Dynamically populated via JavaScript -->
+              </select>
+            </div>
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <label class="text-xs font-bold text-slate-400 uppercase font-mono tracking-tight">Reference Price</label>
+                <button id="btn-refresh-price" title="Fetch simulated market tick" class="text-[11px] text-accent-cyan hover:text-cyan-300 flex items-center gap-1 font-mono font-semibold">
+                  <i class="fa-solid fa-arrows-rotate text-[10px]"></i> Live Ref
+                </button>
+              </div>
+              <div class="relative">
+                <input type="number" step="any" id="input-ref-price" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-accent-cyan font-bold">
+                <span class="absolute right-3 top-2.5 text-xs font-mono text-slate-500 font-semibold" id="label-quote-currency">USD</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Specification Details Card -->
+          <div class="p-3 bg-brand-950/80 rounded-xl border border-white/5 grid grid-cols-3 gap-2 text-center text-xs font-mono">
+            <div>
+              <div class="text-[10px] text-slate-500 uppercase font-bold tracking-tight">Contract Size</div>
+              <div class="text-slate-200 font-bold mt-0.5" id="spec-contract-size">100,000</div>
+            </div>
+            <div class="border-x border-white/5">
+              <div class="text-[10px] text-slate-500 uppercase font-bold tracking-tight">1 Pip / Point</div>
+              <div class="text-accent-cyan font-bold mt-0.5" id="spec-pip-scale">0.0001</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-500 uppercase font-bold tracking-tight">Standard Pip Value</div>
+              <div class="text-accent-emerald font-bold mt-0.5" id="spec-unit-pip-value">$10.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Account Capital & Risk Policy -->
+        <div class="bg-brand-850 rounded-2xl p-5 border border-white/10 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-white/5 pb-3">
+            <h2 class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+              <i class="fa-solid fa-shield-halved text-accent-emerald"></i> 2. Capital & Risk Allocation
+            </h2>
+            <span class="text-[11px] text-slate-400 font-mono">Capital Preservation First</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Account Base Currency -->
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase font-mono tracking-tight">Account Currency</label>
+              <select id="select-account-currency" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent-cyan font-mono font-bold cursor-pointer">
+                <option value="USD" selected>USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="JPY">JPY (¥)</option>
+                <option value="AUD">AUD (A$)</option>
+                <option value="CAD">CAD (C$)</option>
+                <option value="CHF">CHF (₣)</option>
+              </select>
+            </div>
+
+            <!-- Account Balance -->
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase font-mono tracking-tight">Account Balance</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-2.5 text-sm font-mono text-slate-500 font-bold currency-symbol">$</span>
+                <input type="number" id="input-account-balance" value="10000" min="1" step="100" class="w-full bg-brand-950 border border-white/10 rounded-xl pl-8 pr-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-accent-cyan font-extrabold">
+              </div>
+            </div>
+          </div>
+
+          <!-- Risk Type Toggle (Percent % vs Fixed Cash $) -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-400 uppercase font-mono tracking-tight">Risk Sizing Mode</label>
+              <div class="flex items-center bg-brand-950 p-1 rounded-xl border border-white/5 text-xs font-bold font-mono">
+                <button id="btn-mode-pct" class="px-3 py-1 rounded-lg text-accent-cyan bg-brand-700 transition-all shadow-sm">Percentage (%)</button>
+                <button id="btn-mode-cash" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-all">Fixed Cash (<span class="currency-symbol">$</span>)</button>
+              </div>
+            </div>
+
+            <!-- Numeric Risk Input with Dynamic Equivalence Pill -->
+            <div class="relative">
+              <input type="number" id="input-risk-value" value="1.0" min="0.01" step="0.1" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-base font-mono text-white focus:outline-none focus:border-accent-cyan font-extrabold">
+              <span id="label-risk-addon" class="absolute right-3.5 top-2.5 text-xs font-mono text-cyan-400 font-bold">% = $100.00</span>
+            </div>
+
+            <!-- Preset percentage buttons -->
+            <div id="risk-presets-container" class="grid grid-cols-5 gap-1.5 pt-1">
+              <button data-risk="0.5" class="btn-risk-preset py-1.5 rounded-lg bg-brand-950 border border-white/5 hover:border-cyan-500/40 text-xs font-mono text-slate-300 font-semibold transition-all">0.5%</button>
+              <button data-risk="1.0" class="btn-risk-preset py-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500 text-xs font-mono text-accent-cyan font-bold shadow-sm transition-all">1.0%</button>
+              <button data-risk="1.5" class="btn-risk-preset py-1.5 rounded-lg bg-brand-950 border border-white/5 hover:border-cyan-500/40 text-xs font-mono text-slate-300 font-semibold transition-all">1.5%</button>
+              <button data-risk="2.0" class="btn-risk-preset py-1.5 rounded-lg bg-brand-950 border border-white/5 hover:border-cyan-500/40 text-xs font-mono text-slate-300 font-semibold transition-all">2.0%</button>
+              <button data-risk="3.0" class="btn-risk-preset py-1.5 rounded-lg bg-brand-950 border border-white/5 hover:border-rose-500/40 text-xs font-mono text-rose-300 font-semibold transition-all">3.0%</button>
+            </div>
+          </div>
+
+          <!-- Account Leverage Setting for Margin Calculation -->
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-xs font-bold text-slate-400 uppercase font-mono tracking-tight">Broker Account Leverage</label>
+              <span class="text-xs text-accent-cyan font-mono font-bold" id="display-leverage">1:100</span>
+            </div>
+            <select id="select-account-leverage" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-accent-cyan font-mono cursor-pointer font-semibold">
+              <option value="10">1:10 (Conservative / Institutional)</option>
+              <option value="30">1:30 (ESMA / UK Retail Limit)</option>
+              <option value="50">1:50 (US CFTC Retail Limit)</option>
+              <option value="100" selected>1:100 (Standard Global Broker)</option>
+              <option value="200">1:200 (Pro Trading Account)</option>
+              <option value="500">1:500 (High Leverage / Prop Firm)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Panel 3: Order Direction, Entry & Targets -->
+        <div class="bg-brand-850 rounded-2xl p-5 border border-white/10 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-white/5 pb-3">
+            <h2 class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+              <i class="fa-solid fa-crosshairs text-accent-cyan"></i> 3. Order Setup (SL / TP)
+            </h2>
+            
+            <!-- Long / Short Switcher -->
+            <div class="flex bg-brand-950 p-1 rounded-xl border border-white/10 font-mono text-xs">
+              <button id="btn-order-long" class="px-3.5 py-1.5 rounded-lg font-bold transition-all bg-accent-emerald text-brand-950 shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-trend-up"></i> LONG (BUY)
+              </button>
+              <button id="btn-order-short" class="px-3.5 py-1.5 rounded-lg font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-trend-down"></i> SHORT (SELL)
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual Pip Distance Override Switch -->
+          <div class="flex items-center justify-between bg-brand-950 p-2.5 rounded-xl border border-white/5">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-ruler-combined text-accent-cyan text-xs"></i>
+              <span class="text-xs text-slate-300 font-semibold">Manual Pip Distance Override</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-manual-pips" class="sr-only peer">
+              <div class="w-9 h-5 bg-brand-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-cyan"></div>
+            </label>
+          </div>
+
+          <!-- Price Level Inputs (Default Mode) -->
+          <div id="container-price-inputs" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase font-mono tracking-tight">Entry Price</label>
+              <input type="number" step="any" id="input-entry-price" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-accent-cyan font-bold">
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <label class="text-xs font-bold text-rose-400 uppercase font-mono tracking-tight">Stop Loss</label>
+                <span id="badge-sl-pips" class="text-[11px] font-mono text-rose-400 font-bold">30.0 pips</span>
+              </div>
+              <input type="number" step="any" id="input-sl-price" class="w-full bg-brand-950 border border-rose-500/40 rounded-xl px-3 py-2.5 text-sm font-mono text-rose-300 focus:outline-none focus:border-rose-500 font-bold">
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <label class="text-xs font-bold text-emerald-400 uppercase font-mono tracking-tight">Take Profit</label>
+                <span id="badge-tp-pips" class="text-[11px] font-mono text-emerald-400 font-bold">60.0 pips</span>
+              </div>
+              <input type="number" step="any" id="input-tp-price" class="w-full bg-brand-950 border border-emerald-500/40 rounded-xl px-3 py-2.5 text-sm font-mono text-emerald-300 focus:outline-none focus:border-emerald-500 font-bold">
+            </div>
+          </div>
+
+          <!-- Manual Pip Distance Inputs (Active when manual toggle checked) -->
+          <div id="container-manual-pips" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1.5 uppercase font-mono tracking-tight">Entry Price</label>
+              <input type="number" step="any" id="input-manual-entry" class="w-full bg-brand-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-accent-cyan font-bold">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-rose-400 mb-1.5 uppercase font-mono tracking-tight">SL Distance (Pips)</label>
+              <input type="number" step="any" id="input-manual-sl-pips" value="30.0" class="w-full bg-brand-950 border border-rose-500/40 rounded-xl px-3 py-2.5 text-sm font-mono text-rose-300 focus:outline-none focus:border-rose-500 font-bold">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-emerald-400 mb-1.5 uppercase font-mono tracking-tight">TP Distance (Pips)</label>
+              <input type="number" step="any" id="input-manual-tp-pips" value="60.0" class="w-full bg-brand-950 border border-emerald-500/40 rounded-xl px-3 py-2.5 text-sm font-mono text-emerald-300 focus:outline-none focus:border-emerald-500 font-bold">
+            </div>
+          </div>
+
+          <!-- Quick RR Setter Buttons -->
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-white/5">
+            <span class="text-[11px] font-mono uppercase tracking-tight">Target RR Presets:</span>
+            <div class="flex space-x-1 font-mono text-[11px]">
+              <button class="btn-quick-rr px-2.5 py-1 rounded bg-brand-950 hover:bg-brand-700 text-slate-300 border border-white/5 font-semibold" data-rr="1">1:1</button>
+              <button class="btn-quick-rr px-2.5 py-1 rounded bg-brand-950 hover:bg-brand-700 text-slate-300 border border-white/5 font-semibold" data-rr="1.5">1:1.5</button>
+              <button class="btn-quick-rr px-2.5 py-1 rounded bg-brand-950 hover:bg-brand-700 text-accent-cyan border border-cyan-800/40 font-bold" data-rr="2">1:2</button>
+              <button class="btn-quick-rr px-2.5 py-1 rounded bg-brand-950 hover:bg-brand-700 text-slate-300 border border-white/5 font-semibold" data-rr="3">1:3</button>
+              <button class="btn-quick-rr px-2.5 py-1 rounded bg-brand-950 hover:bg-brand-700 text-slate-300 border border-white/5 font-semibold" data-rr="5">1:5</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RIGHT COLUMN: Output Analytics, Lot Sizing & Terminal Display (7 Cols) -->
+      <section class="lg:col-span-7 space-y-5">
+
+        <!-- Master Sizing Hero Card -->
+        <div class="bg-gradient-to-br from-brand-850 to-brand-800 rounded-2xl p-6 border border-cyan-500/30 shadow-2xl relative overflow-hidden glow-cyan">
+          <div class="absolute -top-12 -right-12 w-48 h-48 bg-accent-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div>
+              <span class="text-xs font-bold text-accent-cyan uppercase tracking-widest font-mono">Calculated Execution Size</span>
+              <h3 class="text-2xl font-black text-white mt-0.5 tracking-tight">Institutional Position Allocation</h3>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono bg-cyan-950/90 text-accent-cyan border border-cyan-700/60 shadow-inner">
+                <span class="w-2 h-2 rounded-full bg-accent-cyan animate-pulse mr-2"></span>
+                ACTIVE SIZING
+              </span>
+            </div>
+          </div>
+
+          <!-- Hero Metrics Big Display -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <!-- Standard Lots -->
+            <div class="bg-brand-950/90 p-4 rounded-xl border border-white/10 hover:border-cyan-500/40 transition-all">
+              <div class="text-xs text-slate-400 font-semibold font-mono uppercase tracking-tight">Standard Lots</div>
+              <div class="text-3xl font-black font-mono text-accent-cyan mt-1" id="out-standard-lots">0.33</div>
+              <div class="text-[11px] text-slate-500 mt-1 font-mono">1.00 Lot format</div>
+            </div>
+
+            <!-- Mini Lots -->
+            <div class="bg-brand-950/90 p-4 rounded-xl border border-white/10 hover:border-cyan-500/40 transition-all">
+              <div class="text-xs text-slate-400 font-semibold font-mono uppercase tracking-tight">Mini Lots</div>
+              <div class="text-3xl font-black font-mono text-white mt-1" id="out-mini-lots">3.33</div>
+              <div class="text-[11px] text-slate-500 mt-1 font-mono">0.10 Lot format</div>
+            </div>
+
+            <!-- Micro Lots -->
+            <div class="bg-brand-950/90 p-4 rounded-xl border border-white/10 hover:border-cyan-500/40 transition-all">
+              <div class="text-xs text-slate-400 font-semibold font-mono uppercase tracking-tight">Micro Lots</div>
+              <div class="text-3xl font-black font-mono text-slate-300 mt-1" id="out-micro-lots">33.3</div>
+              <div class="text-[11px] text-slate-500 mt-1 font-mono">0.01 Lot format</div>
+            </div>
+          </div>
+
+          <!-- Secondary Row: Units, Notional, Margin, Free Margin -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10 font-mono text-xs">
+            <div>
+              <div class="text-slate-400 text-[11px] uppercase font-bold tracking-tight">Total Contract Units</div>
+              <div class="text-white font-black text-sm mt-0.5" id="out-units">33,333</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[11px] uppercase font-bold tracking-tight">Notional Position Value</div>
+              <div class="text-white font-black text-sm mt-0.5" id="out-notional">$36,179</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[11px] uppercase font-bold tracking-tight">Broker Margin Req.</div>
+              <div class="text-accent-amber font-black text-sm mt-0.5" id="out-margin">$361.79</div>
+            </div>
+            <div>
+              <div class="text-slate-400 text-[11px] uppercase font-bold tracking-tight">Remaining Free Margin</div>
+              <div class="text-accent-emerald font-black text-sm mt-0.5" id="out-free-margin">$9,638.21</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk vs Reward Visual Gauge & Bar -->
+        <div class="bg-brand-850 rounded-2xl p-5 border border-white/10 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+              <i class="fa-solid fa-chart-pie text-accent-cyan"></i> Risk-to-Reward Geometry
+            </h3>
+            <div class="flex items-center space-x-2 font-mono text-xs">
+              <span class="text-slate-400 font-semibold">Ratio:</span>
+              <span id="out-rr-ratio" class="font-extrabold text-white px-2 py-0.5 rounded bg-cyan-950 text-accent-cyan border border-cyan-800">1 : 2.00</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Proportional Bar -->
+          <div class="space-y-1.5">
+            <div class="flex h-5 w-full rounded-lg overflow-hidden bg-brand-950 border border-white/10 font-mono text-[10px] font-bold">
+              <div id="bar-risk" style="width: 33.3%;" class="bg-rose-600/90 text-white flex items-center justify-center transition-all duration-300">
+                RISK 33%
+              </div>
+              <div id="bar-reward" style="width: 66.7%;" class="bg-emerald-500 text-brand-950 flex items-center justify-center transition-all duration-300 font-extrabold">
+                REWARD 67%
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs font-mono pt-1">
+              <div class="flex items-center space-x-1.5 text-accent-rose">
+                <i class="fa-solid fa-arrow-down"></i>
+                <span class="font-semibold">Max Loss:</span>
+                <span class="font-bold text-sm" id="out-loss-amount">-$100.00</span>
+                <span class="text-[11px] text-slate-500" id="out-loss-pct">(-1.00%)</span>
+              </div>
+              <div class="flex items-center space-x-1.5 text-accent-emerald">
+                <span class="font-semibold">Target Profit:</span>
+                <span class="font-bold text-sm" id="out-profit-amount">+$200.00</span>
+                <span class="text-[11px] text-slate-500" id="out-profit-pct">(+2.00%)</span>
+                <i class="fa-solid fa-arrow-up"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensitivity & Percentage Movement Breakdown -->
+        <div class="bg-brand-850 rounded-2xl p-5 border border-white/10 shadow-xl space-y-4">
+          <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 font-mono">
+            <i class="fa-solid fa-sliders text-accent-cyan"></i> Pip Sensitivity & Percentage Movement Breakdown
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <!-- Matrix 1: Pip Values per Lot size -->
+            <div class="bg-brand-950/70 p-4 rounded-xl border border-white/5 space-y-2.5">
+              <div class="text-xs font-semibold text-slate-300 flex items-center justify-between font-mono">
+                <span>Pip Value per Lot Type</span>
+                <span class="text-[10px] text-slate-500">Live Quote Conversion</span>
+              </div>
+              <div class="space-y-1.5 font-mono text-xs">
+                <div class="flex justify-between items-center py-1 border-b border-white/5">
+                  <span class="text-slate-400">1.0 Standard Lot (1 pip move)</span>
+                  <span class="text-white font-bold" id="sens-standard-pip">$10.00</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-white/5">
+                  <span class="text-slate-400">0.1 Mini Lot (1 pip move)</span>
+                  <span class="text-slate-300 font-semibold" id="sens-mini-pip">$1.00</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-white/5">
+                  <span class="text-slate-400">0.01 Micro Lot (1 pip move)</span>
+                  <span class="text-slate-400" id="sens-micro-pip">$0.10</span>
+                </div>
+                <div class="flex justify-between items-center py-1 text-accent-cyan">
+                  <span>Your Position (<span id="sens-user-lot-label">0.33</span> Lots)</span>
+                  <span class="font-extrabold" id="sens-active-pip">$3.33 / pip</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Matrix 2: Percentage Movement Matrix (1% move sensitivity) -->
+            <div class="bg-brand-950/70 p-4 rounded-xl border border-white/5 space-y-2.5">
+              <div class="text-xs font-semibold text-slate-300 flex items-center justify-between font-mono">
+                <span>Macro Swing Sensitivity</span>
+                <span class="text-[10px] text-accent-cyan">1% Market Move</span>
+              </div>
+              <div class="space-y-1.5 font-mono text-xs">
+                <div class="flex justify-between items-center py-1 border-b border-white/5">
+                  <span class="text-slate-400">1.0% Price Shift on Instrument</span>
+                  <span class="text-white font-bold" id="sens-1pct-price">±108.50 pts</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-white/5">
+                  <span class="text-slate-400">PnL per 1.0 Lot for 1% Move</span>
+                  <span class="text-slate-300 font-semibold" id="sens-1pct-std-pnl">$1,085.00</span>
+                </div>
+                <div class="flex justify-between items-center py-1 border-b border-white/5">
+                  <span class="text-slate-400">PnL on Your Calculated Size</span>
+                  <span class="text-accent-emerald font-bold" id="sens-1pct-user-pnl">$361.79</span>
+                </div>
+                <div class="flex justify-between items-center py-1 text-slate-400">
+                  <span>% Change to Hit Stop Loss</span>
+                  <span class="font-bold text-accent-rose" id="sens-sl-pct-distance">-0.28%</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Pip Movement Sensitivity Table -->
+          <div class="bg-brand-950/70 p-4 rounded-xl border border-white/5 space-y-2.5">
+            <div class="text-xs font-semibold text-slate-300 flex items-center justify-between font-mono">
+              <span>Position Value at Standard Pip Milestones</span>
+              <span class="text-[10px] text-slate-500">PnL on <span id="sens-table-lot-display">0.33</span> Lots</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs text-center">
+              <div class="bg-brand-900/90 p-2.5 rounded-lg border border-white/5">
+                <div class="text-slate-400 text-[11px]">10 Pips Move</div>
+                <div class="text-accent-emerald font-bold mt-1" id="sens-pips-10">+$33.30</div>
+              </div>
+              <div class="bg-brand-900/90 p-2.5 rounded-lg border border-white/5">
+                <div class="text-slate-400 text-[11px]">20 Pips Move</div>
+                <div class="text-accent-emerald font-bold mt-1" id="sens-pips-20">+$66.60</div>
+              </div>
+              <div class="bg-brand-900/90 p-2.5 rounded-lg border border-white/5">
+                <div class="text-slate-400 text-[11px]">50 Pips Move</div>
+                <div class="text-accent-emerald font-bold mt-1" id="sens-pips-50">+$166.50</div>
+              </div>
+              <div class="bg-brand-900/90 p-2.5 rounded-lg border border-white/5">
+                <div class="text-slate-400 text-[11px]">100 Pips Move</div>
+                <div class="text-accent-emerald font-bold mt-1" id="sens-pips-100">+$333.00</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+    </div>
+
+    <!-- Institutional Rules Reference -->
+    <div class="bg-brand-850 rounded-2xl p-5 border border-white/5 text-xs text-slate-400 space-y-2 font-sans">
+      <div class="flex items-center gap-2 font-bold text-white">
+        <i class="fa-solid fa-circle-info text-accent-cyan"></i>
+        <span>Trader's Professional Execution Rules</span>
+      </div>
+      <p class="leading-relaxed">
+        • For 5-digit Forex pairs (e.g. 1.08542), 1 pip = 0.0001 (the 4th decimal). For JPY pairs, 1 pip = 0.01 (2nd decimal).
+        <br>• For Gold (XAUUSD), 1 standard lot is 100 troy ounces; a $0.10 price move equals 1 pip ($10/lot). 
+        <br>• For Silver (XAGUSD), 1 standard lot is 5,000 troy ounces; a $0.01 price move equals 1 pip ($50/lot).
+        <br>• For Crude Oil (USOIL), 1 standard lot is 1,000 barrels. For Cryptos and Indices, pip values reflect index ticks and point spreads calibrated to account denomination.
+      </p>
+    </div>
+
+  </main>
+
+  <!-- Signal Card Export Modal -->
+  <div id="export-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden p-4">
+    <div class="bg-brand-850 border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+      <button id="modal-close" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div>
+        <div class="text-xs font-mono uppercase tracking-wider text-accent-cyan font-bold">Apex Terminal Execution Card</div>
+        <h3 class="text-xl font-black text-white mt-1">Order Execution Ticket</h3>
+      </div>
+
+      <!-- Preview Card Box -->
+      <div id="trade-summary-card" class="bg-brand-950 border border-cyan-500/30 rounded-xl p-4 font-mono text-xs text-slate-300 space-y-2.5 leading-relaxed selection:bg-accent-cyan">
+        <!-- Dynamically rendered via JS -->
+      </div>
+
+      <div class="flex items-center space-x-3 pt-2">
+        <button id="btn-copy-card" class="flex-1 py-3 px-4 bg-accent-cyan text-brand-950 font-black rounded-xl text-xs hover:bg-cyan-300 transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20">
+          <i class="fa-regular fa-copy"></i> Copy to Clipboard
+        </button>
+        <button id="btn-close-modal-alt" class="py-3 px-4 bg-brand-800 text-slate-300 font-semibold rounded-xl text-xs hover:bg-brand-700 transition-all">
+          Done
+        </button>
+      </div>
+
+      <div id="copy-toast" class="hidden text-center text-xs font-mono text-accent-emerald font-bold">
+        ✓ Order Ticket copied! Ready to paste in Discord / Telegram / Journal.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Multi-Asset Master Database */
+    const ASSETS = {
+      // Forex Majors & Crosses
+      "EUR/USD": { category: "forex", type: "Major", pipSize: 0.0001, lotContractUnits: 100000, defaultPrice: 1.0850, base: "EUR", quote: "USD" },
+      "GBP/USD": { category: "forex", type: "Major", pipSize: 0.0001, lotContractUnits: 100000, defaultPrice: 1.2980, base: "GBP", quote: "USD" },
+      "USD/JPY": { category: "forex", type: "Major", pipSize: 0.01,   lotContractUnits: 100000, defaultPrice: 154.50, base: "USD", quote: "JPY" },
+      "AUD/USD": { category: "forex", type: "Major", pipSize: 0.0001, lotContractUnits: 100000, defaultPrice: 0.6650, base: "AUD", quote: "USD" },
+      "USD/CAD": { category: "forex", type: "Major", pipSize: 0.0001, lotContractUnits: 100000, defaultPrice: 1.3780, base: "USD", quote: "CAD" },
+      "USD/CHF": { category: "forex", type: "Major", pipSize: 0.0001, lotContractUnits: 100000, defaultPrice: 0.8920, base: "USD", quote: "CHF" },
+      "NZD/USD": { category: "forex", type: "Major", pipSize: 0.0001, lotContractUnits: 100000, defaultPrice: 0.6015, base: "NZD", quote: "USD" },
+      "EUR/JPY": { category: "forex", type: "Cross", pipSize: 0.01,   lotContractUnits: 100000, defaultPrice: 167.50, base: "EUR", quote: "JPY" },
+      "GBP/JPY": { category: "forex", type: "Cross", pipSize: 0.01,   lotContractUnits: 100000, defaultPrice: 200.20, base: "GBP", quote: "JPY" },
+
+      // Metals & Commodities
+      "XAU/USD": { category: "metals", type: "Gold (100oz)", pipSize: 0.10, lotContractUnits: 100, defaultPrice: 2385.50, base: "XAU", quote: "USD" },
+      "XAG/USD": { category: "metals", type: "Silver (5000oz)", pipSize: 0.01, lotContractUnits: 5000, defaultPrice: 30.50, base: "XAG", quote: "USD" },
+      "USOIL":   { category: "metals", type: "WTI Crude (1000 bbls)", pipSize: 0.01, lotContractUnits: 1000, defaultPrice: 78.50, base: "OIL", quote: "USD" },
+
+      // Crypto Assets
+      "BTC/USD": { category: "crypto", type: "Bitcoin", pipSize: 1.0, lotContractUnits: 1, defaultPrice: 65400.0, base: "BTC", quote: "USD" },
+      "ETH/USD": { category: "crypto", type: "Ethereum", pipSize: 0.1, lotContractUnits: 1, defaultPrice: 3450.0, base: "ETH", quote: "USD" },
+      "SOL/USD": { category: "crypto", type: "Solana", pipSize: 0.01, lotContractUnits: 1, defaultPrice: 152.00, base: "SOL", quote: "USD" },
+
+      // Equity Indices ($1 per index point standard)
+      "US30":    { category: "indices", type: "Dow Jones 30", pipSize: 1.0, lotContractUnits: 1, defaultPrice: 39850.0, base: "USD", quote: "USD" },
+      "NAS100":  { category: "indices", type: "Nasdaq 100", pipSize: 1.0, lotContractUnits: 1, defaultPrice: 19820.0, base: "USD", quote: "USD" },
+      "SPX500":  { category: "indices", type: "S&P 500", pipSize: 0.1, lotContractUnits: 10, defaultPrice: 5540.0, base: "USD", quote: "USD" }
+    };
+
+    /* USD Exchange Rates Matrix for multi-currency conversion */
+    const USD_RATES = {
+      USD: 1.0,
+      EUR: 1.0850,
+      GBP: 1.2980,
+      AUD: 0.6650,
+      CAD: 0.7256,
+      JPY: 0.00647,
+      CHF: 1.1210
+    };
+
+    const SYMBOLS = {
+      USD: '$', EUR: '€', GBP: '£', JPY: '¥', AUD: 'A$', CAD: 'C$', CHF: '₣'
+    };
+
+    /* Application Reactive State */
+    const state = {
+      category: 'forex',
+      symbol: 'EUR/USD',
+      direction: 'LONG',
+      accountCurrency: 'USD',
+      accountBalance: 10000,
+      riskMode: 'percent', // 'percent' or 'cash'
+      riskPercent: 1.0,
+      riskCash: 100.0,
+      leverage: 100,
+      currentPrice: 1.0850,
+      entryPrice: 1.0850,
+      stopLoss: 1.0820,
+      takeProfit: 1.0910,
+      manualPipsMode: false,
+      manualSlPips: 30.0,
+      manualTpPips: 60.0
+    };
+
+    /* DOM References */
+    const dom = {
+      catPills: document.querySelectorAll('.cat-pill'),
+      selectInstrument: document.getElementById('select-instrument'),
+      assetTypeBadge: document.getElementById('asset-type-badge'),
+      labelQuoteCurrency: document.getElementById('label-quote-currency'),
+      specContractSize: document.getElementById('spec-contract-size'),
+      specPipScale: document.getElementById('spec-pip-scale'),
+      specUnitPipValue: document.getElementById('spec-unit-pip-value'),
+      inputRefPrice: document.getElementById('input-ref-price'),
+      btnRefreshPrice: document.getElementById('btn-refresh-price'),
+      selectAccountCurrency: document.getElementById('select-account-currency'),
+      inputAccountBalance: document.getElementById('input-account-balance'),
+      btnModePct: document.getElementById('btn-mode-pct'),
+      btnModeCash: document.getElementById('btn-mode-cash'),
+      inputRiskValue: document.getElementById('input-risk-value'),
+      labelRiskAddon: document.getElementById('label-risk-addon'),
+      riskPresets: document.querySelectorAll('.btn-risk-preset'),
+      selectAccountLeverage: document.getElementById('select-account-leverage'),
+      displayLeverage: document.getElementById('display-leverage'),
+      btnOrderLong: document.getElementById('btn-order-long'),
+      btnOrderShort: document.getElementById('btn-order-short'),
+      toggleManualPips: document.getElementById('toggle-manual-pips'),
+      containerPriceInputs: document.getElementById('container-price-inputs'),
+      containerManualPips: document.getElementById('container-manual-pips'),
+      inputEntryPrice: document.getElementById('input-entry-price'),
+      inputSlPrice: document.getElementById('input-sl-price'),
+      inputTpPrice: document.getElementById('input-tp-price'),
+      inputManualEntry: document.getElementById('input-manual-entry'),
+      inputManualSlPips: document.getElementById('input-manual-sl-pips'),
+      inputManualTpPips: document.getElementById('input-manual-tp-pips'),
+      badgeSlPips: document.getElementById('badge-sl-pips'),
+      badgeTpPips: document.getElementById('badge-tp-pips'),
+      validationBanner: document.getElementById('validation-banner'),
+      validationMessage: document.getElementById('validation-message'),
+      quickRRs: document.querySelectorAll('.btn-quick-rr'),
+      btnReset: document.getElementById('btn-reset'),
+      currencySymbols: document.querySelectorAll('.currency-symbol'),
+      // Outputs
+      outStandardLots: document.getElementById('out-standard-lots'),
+      outMiniLots: document.getElementById('out-mini-lots'),
+      outMicroLots: document.getElementById('out-micro-lots'),
+      outUnits: document.getElementById('out-units'),
+      outNotional: document.getElementById('out-notional'),
+      outMargin: document.getElementById('out-margin'),
+      outFreeMargin: document.getElementById('out-free-margin'),
+      outRrRatio: document.getElementById('out-rr-ratio'),
+      barRisk: document.getElementById('bar-risk'),
+      barReward: document.getElementById('bar-reward'),
+      outLossAmount: document.getElementById('out-loss-amount'),
+      outLossPct: document.getElementById('out-loss-pct'),
+      outProfitAmount: document.getElementById('out-profit-amount'),
+      outProfitPct: document.getElementById('out-profit-pct'),
+      sensStandardPip: document.getElementById('sens-standard-pip'),
+      sensMiniPip: document.getElementById('sens-mini-pip'),
+      sensMicroPip: document.getElementById('sens-micro-pip'),
+      sensActivePip: document.getElementById('sens-active-pip'),
+      sensUserLotLabel: document.getElementById('sens-user-lot-label'),
+      sens1pctPrice: document.getElementById('sens-1pct-price'),
+      sens1pctStdPnl: document.getElementById('sens-1pct-std-pnl'),
+      sens1pctUserPnl: document.getElementById('sens-1pct-user-pnl'),
+      sensSlPctDistance: document.getElementById('sens-sl-pct-distance'),
+      sensTableLotDisplay: document.getElementById('sens-table-lot-display'),
+      sensPips10: document.getElementById('sens-pips-10'),
+      sensPips20: document.getElementById('sens-pips-20'),
+      sensPips50: document.getElementById('sens-pips-50'),
+      sensPips100: document.getElementById('sens-pips-100'),
+      // Modal
+      exportModal: document.getElementById('export-modal'),
+      btnExportTicket: document.getElementById('btn-export-ticket'),
+      modalClose: document.getElementById('modal-close'),
+      btnCloseModalAlt: document.getElementById('btn-close-modal-alt'),
+      btnCopyCard: document.getElementById('btn-copy-card'),
+      tradeSummaryCard: document.getElementById('trade-summary-card'),
+      copyToast: document.getElementById('copy-toast'),
+    };
+
+    /* Populate Instrument Select based on active category */
+    function populateInstruments(cat) {
+      dom.selectInstrument.innerHTML = '';
+      Object.keys(ASSETS).forEach(sym => {
+        const item = ASSETS[sym];
+        if (item.category === cat) {
+          const opt = document.createElement('option');
+          opt.value = sym;
+          opt.textContent = `${sym} • ${item.type}`;
+          dom.selectInstrument.appendChild(opt);
+        }
+      });
+
+      if (dom.selectInstrument.options.length > 0) {
+        state.symbol = dom.selectInstrument.options[0].value;
+        loadInstrumentSpecs(state.symbol, true);
+      }
+    }
+
+    /* Format Decimals Helper based on pip scale */
+    function formatDecimals(val, pipSize) {
+      if (pipSize >= 1) return Math.round(val * 100) / 100;
+      const str = pipSize.toString();
+      const decimals = str.includes('.') ? str.split('.')[1].length + 1 : 2;
+      return Number(val.toFixed(decimals));
+    }
+
+    /* Currency Conversion Helper */
+    function getConversionRate(quoteCurrency, accountCurrency) {
+      if (quoteCurrency === accountCurrency) return 1.0;
+      const quoteInUSD = USD_RATES[quoteCurrency] || 1.0;
+      const accInUSD = USD_RATES[accountCurrency] || 1.0;
+      return quoteInUSD / accInUSD;
+    }
+
+    /* Load Spec details for chosen Symbol */
+    function loadInstrumentSpecs(sym, resetPrices = false) {
+      const spec = ASSETS[sym];
+      if (!spec) return;
+
+      dom.assetTypeBadge.textContent = `${spec.category.toUpperCase()} • ${spec.type}`;
+      dom.labelQuoteCurrency.textContent = spec.quote;
+      dom.specContractSize.textContent = spec.lotContractUnits.toLocaleString();
+      dom.specPipScale.textContent = spec.pipSize;
+
+      const convRate = getConversionRate(spec.quote, state.accountCurrency);
+      const stdPipValAcc = (spec.pipSize * spec.lotContractUnits) * convRate;
+      const currSym = SYMBOLS[state.accountCurrency] || '$';
+      dom.specUnitPipValue.textContent = `${currSym}${stdPipValAcc.toFixed(2)}`;
+
+      if (resetPrices) {
+        state.currentPrice = spec.defaultPrice;
+        dom.inputRefPrice.value = spec.defaultPrice;
+        state.entryPrice = spec.defaultPrice;
+        dom.inputEntryPrice.value = spec.defaultPrice;
+        dom.inputManualEntry.value = spec.defaultPrice;
+
+        const defaultPipOffset = spec.category === 'crypto' ? 500 : (spec.category === 'indices' ? 50 : 30);
+        const distance = defaultPipOffset * spec.pipSize;
+
+        if (state.direction === 'LONG') {
+          state.stopLoss = formatDecimals(state.entryPrice - distance, spec.pipSize);
+          state.takeProfit = formatDecimals(state.entryPrice + (distance * 2), spec.pipSize);
+        } else {
+          state.stopLoss = formatDecimals(state.entryPrice + distance, spec.pipSize);
+          state.takeProfit = formatDecimals(state.entryPrice - (distance * 2), spec.pipSize);
+        }
+
+        dom.inputSlPrice.value = state.stopLoss;
+        dom.inputTpPrice.value = state.takeProfit;
+        dom.inputManualSlPips.value = defaultPipOffset;
+        dom.inputManualTpPips.value = defaultPipOffset * 2;
+      }
+
+      calculateAll();
+    }
+
+    /* Master Calculation Engine */
+    function calculateAll() {
+      const spec = ASSETS[state.symbol];
+      if (!spec) return;
+
+      const accCurr = state.accountCurrency;
+      const currSym = SYMBOLS[accCurr] || '$';
+
+      // Update currency badges
+      dom.currencySymbols.forEach(el => el.textContent = currSym);
+
+      const balance = parseFloat(dom.inputAccountBalance.value) || 0;
+      state.accountBalance = balance;
+      state.leverage = parseInt(dom.selectAccountLeverage.value) || 100;
+      dom.displayLeverage.textContent = `1:${state.leverage}`;
+
+      // Risk Amount Computation
+      let riskAmount = 0;
+      let riskPct = 0;
+
+      if (state.riskMode === 'percent') {
+        riskPct = parseFloat(dom.inputRiskValue.value) || 0;
+        riskAmount = (balance * riskPct) / 100;
+        dom.labelRiskAddon.textContent = `% = ${currSym}${riskAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      } else {
+        riskAmount = parseFloat(dom.inputRiskValue.value) || 0;
+        riskPct = balance > 0 ? (riskAmount / balance) * 100 : 0;
+        dom.labelRiskAddon.textContent = `${currSym} = ${riskPct.toFixed(2)}%`;
+      }
+
+      let entry = 0;
+      let sl = 0;
+      let tp = 0;
+      let slPips = 0;
+      let tpPips = 0;
+
+      if (state.manualPipsMode) {
+        entry = parseFloat(dom.inputManualEntry.value) || 0;
+        slPips = Math.abs(parseFloat(dom.inputManualSlPips.value)) || 0;
+        tpPips = Math.abs(parseFloat(dom.inputManualTpPips.value)) || 0;
+
+        if (state.direction === 'LONG') {
+          sl = formatDecimals(entry - (slPips * spec.pipSize), spec.pipSize);
+          tp = formatDecimals(entry + (tpPips * spec.pipSize), spec.pipSize);
+        } else {
+          sl = formatDecimals(entry + (slPips * spec.pipSize), spec.pipSize);
+          tp = formatDecimals(entry - (tpPips * spec.pipSize), spec.pipSize);
+        }
+      } else {
+        entry = parseFloat(dom.inputEntryPrice.value) || 0;
+        sl = parseFloat(dom.inputSlPrice.value) || 0;
+        tp = parseFloat(dom.inputTpPrice.value) || 0;
+
+        slPips = Math.abs(entry - sl) / spec.pipSize;
+        tpPips = Math.abs(tp - entry) / spec.pipSize;
+      }
+
+      dom.badgeSlPips.textContent = `${slPips.toFixed(1)} pips`;
+      dom.badgeTpPips.textContent = `${tpPips.toFixed(1)} pips`;
+
+      // Validation Checks & Guardrails
+      let isValid = true;
+      let errorMsg = '';
+
+      if (entry <= 0 || sl <= 0) {
+        isValid = false;
+        errorMsg = 'Please enter valid positive Entry and Stop Loss prices.';
+      } else if (!state.manualPipsMode) {
+        if (state.direction === 'LONG' && sl >= entry) {
+          isValid = false;
+          errorMsg = 'For a LONG trade, Stop Loss must be strictly below Entry Price.';
+        } else if (state.direction === 'SHORT' && sl <= entry) {
+          isValid = false;
+          errorMsg = 'For a SHORT trade, Stop Loss must be strictly above Entry Price.';
+        }
+      }
+
+      if (!isValid) {
+        dom.validationBanner.classList.remove('hidden');
+        dom.validationMessage.textContent = errorMsg;
+        clearOutputs();
+        return;
+      } else {
+        dom.validationBanner.classList.add('hidden');
+      }
+
+      // Conversion and pip valuation
+      const convRate = getConversionRate(spec.quote, accCurr);
+      const pipValueStandardAcc = (spec.pipSize * spec.lotContractUnits) * convRate;
+
+      // Position Sizing Formula
+      let standardLots = 0;
+      if (slPips > 0 && pipValueStandardAcc > 0) {
+        standardLots = riskAmount / (slPips * pipValueStandardAcc);
+      }
+
+      const miniLots = standardLots * 10;
+      const microLots = standardLots * 100;
+      const totalUnits = standardLots * spec.lotContractUnits;
+      const notionalAccountCurr = totalUnits * entry * convRate;
+
+      // Margin Calculation
+      const requiredMargin = notionalAccountCurr / state.leverage;
+      const freeMargin = Math.max(0, balance - requiredMargin);
+
+      if (requiredMargin > balance) {
+        dom.validationBanner.classList.remove('hidden');
+        dom.validationMessage.textContent = `Margin Alert: Required broker margin (${currSym}${requiredMargin.toFixed(2)}) exceeds account balance! Consider reducing risk or increasing leverage.`;
+      }
+
+      // Risk-Reward Calculations
+      const rrRatio = slPips > 0 ? (tpPips / slPips) : 0;
+      const targetProfitAmount = riskAmount * rrRatio;
+      const targetProfitPct = riskPct * rrRatio;
+
+      // Update Hero Outputs
+      dom.outStandardLots.textContent = standardLots < 0.01 ? standardLots.toFixed(4) : standardLots.toFixed(2);
+      dom.outMiniLots.textContent = miniLots.toFixed(2);
+      dom.outMicroLots.textContent = microLots.toFixed(1);
+      dom.outUnits.textContent = Math.round(totalUnits).toLocaleString();
+      dom.outNotional.textContent = `${currSym}${Math.round(notionalAccountCurr).toLocaleString()}`;
+      dom.outMargin.textContent = `${currSym}${requiredMargin.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      dom.outFreeMargin.textContent = `${currSym}${freeMargin.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      // Update R:R Display & Bar
+      dom.outRrRatio.textContent = `1 : ${rrRatio.toFixed(2)}`;
+      dom.outLossAmount.textContent = `-${currSym}${riskAmount.toFixed(2)}`;
+      dom.outLossPct.textContent = `(-${riskPct.toFixed(2)}%)`;
+      dom.outProfitAmount.textContent = `+${currSym}${targetProfitAmount.toFixed(2)}`;
+      dom.outProfitPct.textContent = `(+${targetProfitPct.toFixed(2)}%)`;
+
+      if (rrRatio > 0) {
+        const totalProportion = 1 + rrRatio;
+        const riskWidth = Math.max(15, Math.min(85, (1 / totalProportion) * 100));
+        const rewardWidth = 100 - riskWidth;
+        dom.barRisk.style.width = `${riskWidth}%`;
+        dom.barRisk.textContent = `RISK ${Math.round(riskWidth)}%`;
+        dom.barReward.style.width = `${rewardWidth}%`;
+        dom.barReward.textContent = `REWARD ${Math.round(rewardWidth)}%`;
+      } else {
+        dom.barRisk.style.width = `100%`;
+        dom.barRisk.textContent = `RISK 100%`;
+        dom.barReward.style.width = `0%`;
+        dom.barReward.textContent = ``;
+      }
+
+      // Pip & Percentage Sensitivities
+      dom.sensStandardPip.textContent = `${currSym}${pipValueStandardAcc.toFixed(2)}`;
+      dom.sensMiniPip.textContent = `${currSym}${(pipValueStandardAcc * 0.1).toFixed(2)}`;
+      dom.sensMicroPip.textContent = `${currSym}${(pipValueStandardAcc * 0.01).toFixed(3)}`;
+
+      const userPipValue = standardLots * pipValueStandardAcc;
+      dom.sensActivePip.textContent = `${currSym}${userPipValue.toFixed(2)} / pip`;
+      dom.sensUserLotLabel.textContent = standardLots.toFixed(2);
+
+      const onePctPriceMove = entry * 0.01;
+      const onePctPips = onePctPriceMove / spec.pipSize;
+      const onePctStdPnl = onePctPips * pipValueStandardAcc;
+      const onePctUserPnl = onePctStdPnl * standardLots;
+      const slPctDistance = (Math.abs(entry - sl) / entry) * 100;
+
+      dom.sens1pctPrice.textContent = `±${onePctPriceMove.toFixed(spec.pipSize < 0.01 ? 4 : 2)}`;
+      dom.sens1pctStdPnl.textContent = `${currSym}${onePctStdPnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      dom.sens1pctUserPnl.textContent = `${currSym}${onePctUserPnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      dom.sensSlPctDistance.textContent = `-${slPctDistance.toFixed(2)}% (${slPips.toFixed(1)} pips)`;
+
+      // Sensitivity Table (10, 20, 50, 100 pips)
+      dom.sensTableLotDisplay.textContent = standardLots.toFixed(2);
+      dom.sensPips10.textContent = `+${currSym}${(userPipValue * 10).toFixed(2)}`;
+      dom.sensPips20.textContent = `+${currSym}${(userPipValue * 20).toFixed(2)}`;
+      dom.sensPips50.textContent = `+${currSym}${(userPipValue * 50).toFixed(2)}`;
+      dom.sensPips100.textContent = `+${currSym}${(userPipValue * 100).toFixed(2)}`;
+
+      // Update Export Modal Ticket
+      updateTicketModal({
+        symbol: state.symbol,
+        direction: state.direction,
+        entry, sl, tp, slPips, tpPips,
+        standardLots, units: Math.round(totalUnits),
+        riskAmount, riskPct, targetProfitAmount, rrRatio,
+        currSym, requiredMargin, leverage: state.leverage
+      });
+    }
+
+    function clearOutputs() {
+      dom.outStandardLots.textContent = '---';
+      dom.outMiniLots.textContent = '---';
+      dom.outMicroLots.textContent = '---';
+      dom.outUnits.textContent = '---';
+      dom.outNotional.textContent = '---';
+      dom.outMargin.textContent = '---';
+      dom.outFreeMargin.textContent = '---';
+    }
+
+    /* Render Order Ticket */
+    function updateTicketModal(data) {
+      dom.tradeSummaryCard.innerHTML = `
+        <div class="text-white font-black pb-1.5 border-b border-white/10 flex justify-between items-center text-sm">
+          <span>⚡ ${data.symbol} &bull; ${data.direction}</span>
+          <span class="${data.direction === 'LONG' ? 'text-accent-emerald' : 'text-accent-rose'} font-mono">R:R 1:${data.rrRatio.toFixed(2)}</span>
+        </div>
+        <div><strong>Entry Price:</strong> ${data.entry}</div>
+        <div><strong>Stop Loss:</strong> ${data.sl} (${data.slPips.toFixed(1)} pips)</div>
+        <div><strong>Take Profit:</strong> ${data.tp} (${data.tpPips.toFixed(1)} pips)</div>
+        <div class="pt-1.5 border-t border-white/5 text-accent-cyan">
+          <strong>Execution Size:</strong> ${data.standardLots.toFixed(2)} Std Lots (${data.units.toLocaleString()} units)
+        </div>
+        <div><strong>Capital at Risk:</strong> ${data.currSym}${data.riskAmount.toFixed(2)} (${data.riskPct.toFixed(2)}%)</div>
+        <div><strong>Target Profit:</strong> ${data.currSym}${data.targetProfitAmount.toFixed(2)}</div>
+        <div class="text-slate-500 text-[10px] pt-1">Margin: ${data.currSym}${data.requiredMargin.toFixed(2)} | Leverage 1:${data.leverage} | APEX TERMINAL</div>
+      `;
+    }
+
+    // Category pill toggle
+    dom.catPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        dom.catPills.forEach(p => {
+          p.classList.remove('bg-brand-700', 'text-accent-cyan', 'shadow-sm');
+          p.classList.add('text-slate-400');
+        });
+        pill.classList.add('bg-brand-700', 'text-accent-cyan', 'shadow-sm');
+        pill.classList.remove('text-slate-400');
+
+        state.category = pill.getAttribute('data-cat');
+        populateInstruments(state.category);
+      });
+    });
+
+    // Instrument dropdown change
+    dom.selectInstrument.addEventListener('change', (e) => {
+      state.symbol = e.target.value;
+      loadInstrumentSpecs(state.symbol, true);
+    });
+
+    // Simulated market tick refresh
+    dom.btnRefreshPrice.addEventListener('click', () => {
+      const spec = ASSETS[state.symbol];
+      const delta = (Math.random() - 0.5) * 0.003 * spec.defaultPrice;
+      const updated = formatDecimals(spec.defaultPrice + delta, spec.pipSize);
+      dom.inputRefPrice.value = updated;
+      dom.inputEntryPrice.value = updated;
+      dom.inputManualEntry.value = updated;
+      state.currentPrice = updated;
+      state.entryPrice = updated;
+
+      const pipDist = 30 * spec.pipSize;
+      if (state.direction === 'LONG') {
+        dom.inputSlPrice.value = formatDecimals(updated - pipDist, spec.pipSize);
+        dom.inputTpPrice.value = formatDecimals(updated + (pipDist * 2), spec.pipSize);
+      } else {
+        dom.inputSlPrice.value = formatDecimals(updated + pipDist, spec.pipSize);
+        dom.inputTpPrice.value = formatDecimals(updated - (pipDist * 2), spec.pipSize);
+      }
+      calculateAll();
+    });
+
+    // Order Direction Switcher (LONG vs SHORT)
+    dom.btnOrderLong.addEventListener('click', () => {
+      if (state.direction === 'LONG') return;
+      state.direction = 'LONG';
+      dom.btnOrderLong.className = 'px-3.5 py-1.5 rounded-lg font-bold transition-all bg-accent-emerald text-brand-950 shadow-sm flex items-center gap-1.5';
+      dom.btnOrderShort.className = 'px-3.5 py-1.5 rounded-lg font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5';
+
+      const spec = ASSETS[state.symbol];
+      const entry = parseFloat(dom.inputEntryPrice.value);
+      const slDist = Math.abs(entry - parseFloat(dom.inputSlPrice.value));
+      const tpDist = Math.abs(parseFloat(dom.inputTpPrice.value) - entry);
+
+      dom.inputSlPrice.value = formatDecimals(entry - slDist, spec.pipSize);
+      dom.inputTpPrice.value = formatDecimals(entry + tpDist, spec.pipSize);
+      calculateAll();
+    });
+
+    dom.btnOrderShort.addEventListener('click', () => {
+      if (state.direction === 'SHORT') return;
+      state.direction = 'SHORT';
+      dom.btnOrderShort.className = 'px-3.5 py-1.5 rounded-lg font-bold transition-all bg-accent-rose text-white shadow-sm flex items-center gap-1.5';
+      dom.btnOrderLong.className = 'px-3.5 py-1.5 rounded-lg font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5';
+
+      const spec = ASSETS[state.symbol];
+      const entry = parseFloat(dom.inputEntryPrice.value);
+      const slDist = Math.abs(entry - parseFloat(dom.inputSlPrice.value));
+      const tpDist = Math.abs(parseFloat(dom.inputTpPrice.value) - entry);
+
+      dom.inputSlPrice.value = formatDecimals(entry + slDist, spec.pipSize);
+      dom.inputTpPrice.value = formatDecimals(entry - tpDist, spec.pipSize);
+      calculateAll();
+    });
+
+    // Manual Pip Distance Toggle
+    dom.toggleManualPips.addEventListener('change', (e) => {
+      state.manualPipsMode = e.target.checked;
+      if (state.manualPipsMode) {
+        dom.containerPriceInputs.classList.add('hidden');
+        dom.containerManualPips.classList.remove('hidden');
+        dom.inputManualEntry.value = dom.inputEntryPrice.value;
+      } else {
+        dom.containerManualPips.classList.add('hidden');
+        dom.containerPriceInputs.classList.remove('hidden');
+        dom.inputEntryPrice.value = dom.inputManualEntry.value;
+      }
+      calculateAll();
+    });
+
+    // Risk Mode Toggle (Percent vs Cash)
+    dom.btnModePct.addEventListener('click', () => {
+      state.riskMode = 'percent';
+      dom.btnModePct.className = 'px-3 py-1 rounded-lg text-accent-cyan bg-brand-700 transition-all shadow-sm';
+      dom.btnModeCash.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-all';
+      dom.inputRiskValue.value = state.riskPercent;
+      calculateAll();
+    });
+
+    dom.btnModeCash.addEventListener('click', () => {
+      state.riskMode = 'cash';
+      dom.btnModeCash.className = 'px-3 py-1 rounded-lg text-accent-cyan bg-brand-700 transition-all shadow-sm';
+      dom.btnModePct.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-all';
+      const balance = parseFloat(dom.inputAccountBalance.value) || 10000;
+      dom.inputRiskValue.value = (balance * (state.riskPercent / 100)).toFixed(2);
+      calculateAll();
+    });
+
+    // Risk Presets (0.5%, 1%, 1.5%, 2%, 3%)
+    dom.riskPresets.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseFloat(btn.getAttribute('data-risk'));
+        state.riskPercent = val;
+
+        dom.riskPresets.forEach(b => {
+          b.className = 'btn-risk-preset py-1.5 rounded-lg bg-brand-950 border border-white/5 hover:border-cyan-500/40 text-xs font-mono text-slate-300 font-semibold transition-all';
+        });
+        btn.className = 'btn-risk-preset py-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500 text-xs font-mono text-accent-cyan font-bold shadow-sm transition-all';
+
+        if (state.riskMode === 'percent') {
+          dom.inputRiskValue.value = val;
+        } else {
+          const balance = parseFloat(dom.inputAccountBalance.value) || 10000;
+          dom.inputRiskValue.value = ((balance * val) / 100).toFixed(2);
+        }
+        calculateAll();
+      });
+    });
+
+    // Quick RR Multiplier Buttons
+    dom.quickRRs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const multiplier = parseFloat(btn.getAttribute('data-rr'));
+        const spec = ASSETS[state.symbol];
+
+        if (state.manualPipsMode) {
+          const slPips = parseFloat(dom.inputManualSlPips.value) || 0;
+          dom.inputManualTpPips.value = (slPips * multiplier).toFixed(1);
+        } else {
+          const entry = parseFloat(dom.inputEntryPrice.value);
+          const sl = parseFloat(dom.inputSlPrice.value);
+          const slDist = Math.abs(entry - sl);
+
+          if (state.direction === 'LONG') {
+            dom.inputTpPrice.value = formatDecimals(entry + (slDist * multiplier), spec.pipSize);
+          } else {
+            dom.inputTpPrice.value = formatDecimals(entry - (slDist * multiplier), spec.pipSize);
+          }
+        }
+        calculateAll();
+      });
+    });
+
+    // Reset Defaults
+    dom.btnReset.addEventListener('click', () => {
+      dom.inputAccountBalance.value = "10000";
+      dom.selectAccountCurrency.value = "USD";
+      state.accountCurrency = "USD";
+      dom.selectAccountLeverage.value = "100";
+      state.riskMode = 'percent';
+      dom.btnModePct.click();
+      dom.inputRiskValue.value = "1.0";
+      state.riskPercent = 1.0;
+      loadInstrumentSpecs(state.symbol, true);
+    });
+
+    // Live calculation listeners for inputs
+    [
+      dom.inputRefPrice, dom.inputAccountBalance, dom.inputRiskValue,
+      dom.inputEntryPrice, dom.inputSlPrice, dom.inputTpPrice,
+      dom.inputManualEntry, dom.inputManualSlPips, dom.inputManualTpPips,
+      dom.selectAccountCurrency, dom.selectAccountLeverage
+    ].forEach(el => {
+      el.addEventListener('input', () => {
+        if (el === dom.selectAccountCurrency) {
+          state.accountCurrency = dom.selectAccountCurrency.value;
+          loadInstrumentSpecs(state.symbol, false);
+        } else {
+          calculateAll();
+        }
+      });
+      el.addEventListener('change', calculateAll);
+    });
+
+    // Export Modal Controls
+    dom.btnExportTicket.addEventListener('click', () => {
+      dom.exportModal.classList.remove('hidden');
+    });
+
+    [dom.modalClose, dom.btnCloseModalAlt].forEach(el => {
+      el.addEventListener('click', () => {
+        dom.exportModal.classList.add('hidden');
+        dom.copyToast.classList.add('hidden');
+      });
+    });
+
+    dom.btnCopyCard.addEventListener('click', () => {
+      const textToCopy = dom.tradeSummaryCard.innerText;
+      const textArea = document.createElement("textarea");
+      textArea.value = textToCopy;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        dom.copyToast.classList.remove('hidden');
+        setTimeout(() => dom.copyToast.classList.add('hidden'), 2500);
+      } catch (err) {
+        console.error('Copy ticket failed', err);
+      }
+      document.body.removeChild(textArea);
+    });
+
+    dom.exportModal.addEventListener('click', (e) => {
+      if (e.target === dom.exportModal) {
+        dom.exportModal.classList.add('hidden');
+      }
+    });
+
+    // Lifecycle Bootstrap
+    window.addEventListener('DOMContentLoaded', () => {
+      populateInstruments('forex');
+      calculateAll();
+
+      // Subtle ticker simulation
+      setInterval(() => {
+        const rand = (Math.random() - 0.5) * 0.00015;
+        const elem = document.getElementById('ticker-eurusd');
+        if (elem) {
+          const cur = 1.08500 + rand;
+          elem.textContent = cur.toFixed(5);
+        }
+      }, 3500);
+    });
+  </script>
+</body>
+</html>
